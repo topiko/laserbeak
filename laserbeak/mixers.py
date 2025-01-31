@@ -7,7 +7,7 @@ from torchvision.ops.deform_conv import deform_conv2d
 import math
 from functools import partial
 
-from src.layers import *
+from laserbeak.layers import *
 
 
 class MHSAttention(nn.Module):
@@ -16,8 +16,8 @@ class MHSAttention(nn.Module):
     Modified from timm.
     Added support for conv. projections (from CvT) and uses PyTorch 2.0 accelerated attention function
     """
-    def __init__(self, dim, 
-                 head_dim = None, num_heads = None, 
+    def __init__(self, dim,
+                 head_dim = None, num_heads = None,
                  use_conv_proj = False,
                  attn_drop = 0., proj_drop = 0., head_drop = 0.,
                  bias = True,
@@ -33,7 +33,7 @@ class MHSAttention(nn.Module):
         else:
             self.head_dim = dim // num_heads
             self.num_heads = num_heads
-        
+
         self.scale = self.head_dim ** -0.5
         if self.num_heads == 0:
             self.num_heads = 1
@@ -71,8 +71,8 @@ class MHSAttention(nn.Module):
             #    x = x.view(x.shape[0], -1, self.num_heads, self.head_dim).permute(0, 2, 1, 3)
             #    return x
 
-            #self.qkv = lambda x: (conv_qkv(x, self.q_conv_proj, self.q_linear_proj), 
-            #                                    conv_qkv(x, self.k_conv_proj, self.k_linear_proj), 
+            #self.qkv = lambda x: (conv_qkv(x, self.q_conv_proj, self.q_linear_proj),
+            #                                    conv_qkv(x, self.k_conv_proj, self.k_linear_proj),
             #                                    conv_qkv(x, self.v_conv_proj, self.v_linear_proj))
 
         self.attn_drop = nn.Dropout(attn_drop)
@@ -118,9 +118,9 @@ class MHSAttention(nn.Module):
         return q,k,v
 
 
-        
-    def forward(self, x, 
-                attn_mask = None, 
+
+    def forward(self, x,
+                attn_mask = None,
                 skip_toks = 0):
 
         B, N, C = x.shape
@@ -137,11 +137,11 @@ class MHSAttention(nn.Module):
         #attn = self.attn_drop(attn)
         #x = (attn @ v)
         #"""
-        x = F.scaled_dot_product_attention(q, k, v, 
-                                    attn_mask = attn_mask, 
-                                    dropout_p = self.attn_drop_p, 
+        x = F.scaled_dot_product_attention(q, k, v,
+                                    attn_mask = attn_mask,
+                                    dropout_p = self.attn_drop_p,
                                     is_causal = False)
-        
+
 
         self.head_drop(x)
         x = x.transpose(1, 2).reshape(B, N, self.attention_dim)
@@ -154,13 +154,13 @@ class MHSAttention(nn.Module):
 class ConvMixer(nn.Module):
     """
     Inverted separable convolution from MobileNetV2: https://arxiv.org/abs/1801.04381.
-    Further used by MetaFormer: 
+    Further used by MetaFormer:
     Modified for 1D input sequences and support for class token pass through
     """
     def __init__(self, dim, expansion_ratio=2, out_dim=None,
-                 act1_layer=nn.GELU, act2_layer=nn.Identity, 
+                 act1_layer=nn.GELU, act2_layer=nn.Identity,
                  kernel_size=7, stride = 1, padding=None, bias=False,
-                 **kwargs, 
+                 **kwargs,
             ):
         super().__init__()
 
@@ -174,17 +174,17 @@ class ConvMixer(nn.Module):
         self.pwconv1 = nn.Linear(dim, med_channels, bias = bias)
         self.act1 = act1_layer()
         # depthwise conv
-        self.dwconv = nn.Conv1d(med_channels, med_channels, 
+        self.dwconv = nn.Conv1d(med_channels, med_channels,
                                 kernel_size = kernel_size,
-                                padding = padding, 
+                                padding = padding,
                                 groups = med_channels,
                                 stride = stride,
                                 bias = bias)
         self.act2 = act2_layer()
         self.pwconv2 = nn.Linear(med_channels, out_dim, bias = bias)
 
-    def forward(self, x, 
-                with_cls_tok = False, 
+    def forward(self, x,
+                with_cls_tok = False,
                 **kwargs
             ):
         if with_cls_tok:
@@ -214,8 +214,8 @@ class PoolMixer(nn.Module):
         self.pool = nn.AvgPool1d(
             pool_size, stride=1, padding=pool_size//2, count_include_pad=False)
 
-    def forward(self, x, 
-                with_cls_tok = False, 
+    def forward(self, x,
+                with_cls_tok = False,
                 **kwargs
             ):
         if with_cls_tok:
@@ -249,7 +249,7 @@ class ATMOp(nn.Module):
     Modified to support the masking of padding and 1D sequences
     """
     def __init__(
-            self, in_chans, out_chans, 
+            self, in_chans, out_chans,
             bias: bool = True,
     ):
         super(ATMOp, self).__init__()
@@ -286,7 +286,7 @@ class ATMOp(nn.Module):
         offset_t[:, 0::2, :] += offset
 
         return deform_conv2d(
-            x.unsqueeze(-1), offset_t.unsqueeze(-1), self.weight, self.bias, 
+            x.unsqueeze(-1), offset_t.unsqueeze(-1), self.weight, self.bias,
             mask=attn_mask,
         ).squeeze(-1)
 
@@ -323,9 +323,9 @@ class ATMixer(nn.Module):
             nn.Linear(dim, dim // self.shared_dims)
         )
 
-    def forward(self, x, 
-                offset = None, 
-                attn_mask = None, 
+    def forward(self, x,
+                offset = None,
+                attn_mask = None,
                 **kwargs
             ):
         """
@@ -340,8 +340,8 @@ class ATMixer(nn.Module):
         c = self.atm_c(x)
 
         if attn_mask is not None:
-            attn_mask_t = attn_mask.long().float().unsqueeze(-1) 
-            a = ((s + c) * attn_mask_t).permute(0, 2, 1) 
+            attn_mask_t = attn_mask.long().float().unsqueeze(-1)
+            a = ((s + c) * attn_mask_t).permute(0, 2, 1)
             #a = a.mean(2)
             a = a.sum(2) / attn_mask_t.sum(1)
         else:
@@ -376,7 +376,7 @@ class RandomMixing(nn.Module):
     def __init__(self, num_tokens, **kwargs):
         super().__init__()
         self.random_matrix = nn.parameter.Parameter(
-            data = torch.softmax(torch.rand(num_tokens, num_tokens), dim=-1), 
+            data = torch.softmax(torch.rand(num_tokens, num_tokens), dim=-1),
             requires_grad = False)
 
     def forward(self, x, **kwargs):

@@ -18,11 +18,11 @@ import json
 import time
 import argparse
 
-from src.data import *
-#from src.deformdfnet import DFNet
-from src.transdfnet import DFNet
-from src.processor import DataProcessor
-from src.cls_cvt import ConvolutionalVisionTransformer
+from laserbeak.data import *
+#from laserbeak.deformdfnet import DFNet
+from laserbeak.transdfnet import DFNet
+from laserbeak.processor import DataProcessor
+from laserbeak.cls_cvt import ConvolutionalVisionTransformer
 
 
 
@@ -41,35 +41,35 @@ def parse_args():
                         prog = 'WF Benchmark',
                         description = 'Train & evaluate WF attack model.',
                         epilog = 'Text at the bottom of help')
-    parser.add_argument('--data_dir', 
-                        default = './data', 
+    parser.add_argument('--data_dir',
+                        default = './data',
                         type = str,
                         help = "Set root data directory.")
-    parser.add_argument('--results_dir', 
+    parser.add_argument('--results_dir',
                         default = './results',
                         type = str,
                         help = "Set directory for result logs.")
-    parser.add_argument('--ckpt', 
-                        default = None, 
+    parser.add_argument('--ckpt',
+                        default = None,
                         type = str,
                         help = "Resume from checkpoint path.")
-    parser.add_argument('--dataset', 
-                        default = DATASET_CHOICES[0], 
-                        type = str, 
+    parser.add_argument('--dataset',
+                        default = DATASET_CHOICES[0],
+                        type = str,
                         choices = DATASET_CHOICES,
                         help = "Select dataset for train & test.")
-    parser.add_argument('--bs', 
-                        default = 128, 
+    parser.add_argument('--bs',
+                        default = 128,
                         type = int,
                         help = "Training batch size.")
-    parser.add_argument('--use_tmp', 
+    parser.add_argument('--use_tmp',
                         action = 'store_true',
                         default=False,
                         help = "Store data post transformation to disk to save memory.")
-    parser.add_argument('--tmp_name', 
+    parser.add_argument('--tmp_name',
                         default = None,
                         help = "The name of the subdirectory in which to store data.")
-    parser.add_argument('--keep_tmp', 
+    parser.add_argument('--keep_tmp',
                         action = 'store_true',
                         default=False,
                         help = "Do not clear processed data files upon program completion.")
@@ -136,11 +136,11 @@ if __name__ == "__main__":
 
     # processing applied to samples on dataset load
     tr_transforms = [
-                        ToTensor(), 
+                        ToTensor(),
                         ToProcessed(processor),
                     ]
     te_transforms = [
-                        ToTensor(), 
+                        ToTensor(),
                         ToProcessed(processor),
                     ]
     # processing applied to batch samples during training
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     te_augments = [
                     ]
 
-    trainloader, valloader, testloader, classes = load_data(dataset, 
+    trainloader, valloader, testloader, classes = load_data(dataset,
                                                  batch_size = mini_batch_size,
                                                  tr_transforms = tr_transforms,
                                                  te_transforms = te_transforms,
@@ -167,19 +167,19 @@ if __name__ == "__main__":
     # define base metaformer model
     # # # # # #
     if args.run_cvt:
-        net = ConvolutionalVisionTransformer(input_size = model_config['input_size'], 
-                                             in_chans = input_channels, 
+        net = ConvolutionalVisionTransformer(input_size = model_config['input_size'],
+                                             in_chans = input_channels,
                                              num_classes = classes).to(device)
     else:
-        net = DFNet(classes, input_channels, 
+        net = DFNet(classes, input_channels,
                     **model_config)
         net = net.to(device)
     if resumed:
         net_state_dict = resumed['model']
         net.load_state_dict(net_state_dict)
-        
+
     criterion = nn.CrossEntropyLoss(
-                                    reduction = 'mean', 
+                                    reduction = 'mean',
                                 )
 
     def train_iter(i):
@@ -202,7 +202,7 @@ if __name__ == "__main__":
                     cls_pred = net(inputs)
                     loss = criterion(cls_pred, targets)
                 else:
-                    cls_pred, feats = net(inputs, 
+                    cls_pred, feats = net(inputs,
                                           return_feats = True)
 
                     loss = criterion(cls_pred, targets)
@@ -234,7 +234,7 @@ if __name__ == "__main__":
         test_loss = 0.
         test_acc = 0
         n = 0
-        thresholds = np.concatenate((np.linspace(0.0, .9, num=10, endpoint=False), 
+        thresholds = np.concatenate((np.linspace(0.0, .9, num=10, endpoint=False),
                                      np.linspace(0.9, 1.0, num=90, endpoint=False)))
         res = np.zeros((len(thresholds), 4))
         with tqdm(testloader, desc=f"Test", bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', dynamic_ncols=True) as pbar:
@@ -286,7 +286,7 @@ if __name__ == "__main__":
 
                 pbar.set_postfix({
                                   'acc': test_acc/n,
-                                  'loss': test_loss/(batch_idx+1), 
+                                  'loss': test_loss/(batch_idx+1),
                                 })
 
         if include_unm:
