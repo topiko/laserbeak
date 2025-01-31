@@ -1,5 +1,5 @@
 [project]
-name = "laserbeak-src"
+name = "laserbeak"
 version = "0.1.0"
 description = "Forked from https://github.com/notem/Laserbeak-WF-Classifier"
 readme = "README.md"
@@ -16,9 +16,6 @@ dependencies = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.uv.workspace]
-members = ["laserbeak"]
 
 [tool.uv.sources]
 timm = { git = "https://github.com/huggingface/pytorch-image-models.git" }
