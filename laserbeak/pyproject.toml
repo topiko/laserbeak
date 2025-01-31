@@ -1,0 +1,11 @@
+[project]
+name = "laserbeak"
+version = "0.1.0"
+description = "Original source codes from laserbeak"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
